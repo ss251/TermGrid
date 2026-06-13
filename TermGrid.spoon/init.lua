@@ -211,8 +211,13 @@ end
 
 --- TermGrid:arrange()
 --- Method
---- Arrange the target terminal's windows into a grid, active sessions first,
---- spilling onto other displays as needed.
+--- Arranges the target terminal's windows into a grid, active sessions first, spilling onto other displays as needed.
+---
+--- Parameters:
+---  * None
+---
+--- Returns:
+---  * The TermGrid object
 function obj:arrange()
   if not hs.accessibilityState() then
     hs.alert.show("Grant Hammerspoon Accessibility access:\nSystem Settings → Privacy & Security → Accessibility")
@@ -286,7 +291,13 @@ end
 
 --- TermGrid:calibrate()
 --- Method
---- Remember the focused window's current size as the grid tile size for its app.
+--- Remembers the focused window's current size as the grid tile size for its application.
+---
+--- Parameters:
+---  * None
+---
+--- Returns:
+---  * The TermGrid object
 function obj:calibrate()
   local w = hs.window.focusedWindow()
   if not w then
@@ -302,12 +313,15 @@ end
 
 --- TermGrid:bindHotkeys(mapping)
 --- Method
---- Bind hotkeys. Spec keys: `arrange`, `calibrate`.
---- Example:
----   spoon.TermGrid:bindHotkeys({
----     arrange   = {{"cmd","alt","ctrl"}, "g"},
----     calibrate = {{"cmd","alt","ctrl"}, "c"},
----   })
+--- Binds hotkeys for TermGrid.
+---
+--- Parameters:
+---  * mapping - A table containing hotkey modifier/key details for the following items:
+---    * arrange - Arrange the terminal's windows into a grid
+---    * calibrate - Remember the focused window's current size as the tile size
+---
+--- Returns:
+---  * The TermGrid object
 function obj:bindHotkeys(mapping)
   local spec = {
     arrange   = function() self:arrange() end,
@@ -319,8 +333,13 @@ end
 
 --- TermGrid:start()
 --- Method
---- Create the ▦ menu-bar button (if `menubar` is true). Clicking it opens a
---- small menu (Arrange / Set tile size). For instant arranging, use the hotkey.
+--- Starts TermGrid, adding the menu-bar button (if TermGrid.menubar is true). The button opens a small menu (Arrange / Set tile size); for instant arranging, use the hotkey.
+---
+--- Parameters:
+---  * None
+---
+--- Returns:
+---  * The TermGrid object
 function obj:start()
   if self.menubar and not self._menu then
     self._menu = hs.menubar.new()
@@ -340,7 +359,13 @@ end
 
 --- TermGrid:stop()
 --- Method
---- Remove the menu-bar button.
+--- Stops TermGrid, removing the menu-bar button.
+---
+--- Parameters:
+---  * None
+---
+--- Returns:
+---  * The TermGrid object
 function obj:stop()
   if self._menu then self._menu:delete(); self._menu = nil end
   return self
