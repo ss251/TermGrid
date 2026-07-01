@@ -11,9 +11,9 @@ If you run a pile of terminal sessions (especially AI coding agents like [Claude
 ## Features
 
 - **One hotkey, every window** — grids all of your terminal's windows, sized to fit the screen.
-- **Fits, never overflows** — with lots of windows open, tiles shrink (keeping the terminal's aspect ratio) so every row stays fully on-screen and readable.
+- **Fills the screen, no wasted space** — windows are laid out as a treemap that fills the whole display; tiles stay roughly square (terminal-shaped), never thin strips.
 - **Works with any macOS terminal** — iTerm2, Terminal.app, Ghostty, WezTerm, kitty, Alacritty, Warp, Hyper, Tabby. Auto-detects whichever you're using.
-- **Active sessions first** — actively-working [Claude Code](https://www.anthropic.com/claude-code) sessions are detected from the terminal title (Claude stamps a Braille spinner while it works) and placed first, side by side. Safely no-ops if you don't use Claude.
+- **Active sessions, gently emphasized** — actively-working [Claude Code](https://www.anthropic.com/claude-code) sessions (detected from the terminal title's Braille spinner) get a proportionally larger tile — about 2× the area, kept square-ish, not a giant strip. A just-finished session stays big and fades back over ~2 min, so hand-offs feel balanced. Safely no-ops if you don't use Claude. (Enable with `heroActive`.)
 - **Spills only when needed** — keeps everything on your current screen and only spills onto another display once tiles would shrink below a readable width.
 - **Calibrate once** — set the preferred (maximum) size from a window you like; TermGrid remembers it per app.
 - **Tiny & hackable** — one Lua file, no daemons, no dependencies beyond Hammerspoon.
@@ -63,7 +63,7 @@ Claude Code writes a status glyph at the start of the terminal title:
 | `✳ ✻ ✶ …` (asterisk)        | idle Claude prompt   | second            |
 | `you@host:~`                | plain shell / other  | last              |
 
-It's a snapshot taken the instant you press the hotkey, so it reflects whatever is busy right then. If a future Claude version changes those glyphs, detection simply falls back to normal ordering — nothing breaks. Set `prioritizeActive = false` to turn it off.
+If a future Claude version changes those glyphs, detection simply falls back to a uniform grid — nothing breaks. Emphasis is off by default; enable it with `heroActive = true` (and tune `heroWeight` / `recencyWindow`).
 
 ## Configuration
 
@@ -72,11 +72,14 @@ Override any of these after `hs.loadSpoon("TermGrid")`:
 ```lua
 spoon.TermGrid.gap = 8                 -- px between tiles and screen edge
 spoon.TermGrid.app = nil               -- pin a terminal by bundle id, or nil to auto-detect
-spoon.TermGrid.tileMode = "calibrate"  -- "calibrate" (remembered size) or "fixed"
-spoon.TermGrid.tileSize = { w = 680, h = 460 }  -- preferred/max size; fallback and used when tileMode == "fixed"
+spoon.TermGrid.heroActive = false      -- make active/recent sessions bigger (weighted treemap)
+spoon.TermGrid.heroWeight = 2.0        -- an active tile is ~this many times the area of an idle one
+spoon.TermGrid.recencyWindow = 120     -- seconds a just-finished session stays big before fading back
+spoon.TermGrid.autoArrange = false     -- re-arrange automatically as sessions start/stop working
+spoon.TermGrid.autoInterval = 1.5      -- how often (s) auto-arrange checks for activity changes
 spoon.TermGrid.minTileWidth = 420      -- only spill to another display when tiles would be narrower than this
-spoon.TermGrid.anchor = "topleft"      -- "topleft" or "center"
-spoon.TermGrid.prioritizeActive = true -- active Claude sessions first
+spoon.TermGrid.tileMode = "calibrate"  -- "calibrate" (remembered size) or "fixed" — guides spill threshold
+spoon.TermGrid.tileSize = { w = 680, h = 460 }  -- fallback size; used when tileMode == "fixed"
 spoon.TermGrid.spill = true            -- spill onto other displays when one screen fills
 spoon.TermGrid.showAlerts = true       -- show a confirmation alert
 spoon.TermGrid.menubar = true          -- show the ▦ menu-bar button

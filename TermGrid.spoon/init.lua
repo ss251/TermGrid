@@ -63,33 +63,28 @@ obj.tileSize = { w = 680, h = 460 }
 --- have to get narrower than this. Default 420.
 obj.minTileWidth = 420
 
---- TermGrid.anchor
---- Variable
---- "topleft" (default) fills from the top-left corner; "center" centers a partial
---- last row. Full rows fill the screen either way.
-obj.anchor = "topleft"
-
---- TermGrid.prioritizeActive
---- Variable
---- When true (default), actively-working Claude Code sessions are placed first
---- (top-left, side by side), then idle Claude sessions, then everything else.
---- Detection is by the terminal title's leading glyph; it safely no-ops for
---- non-Claude sessions.
-obj.prioritizeActive = true
-
 --- TermGrid.heroActive
 --- Variable
---- When true, actively-working Claude sessions get a larger "hero" tile in a
---- taller band at the top of the screen, and everything else fills a denser grid
---- below — instead of all tiles being equal. Falls back to an equal grid when no
---- session is working (or all are). Default false.
+--- When true, actively-working (and recently-active) sessions get a larger tile —
+--- proportionally bigger, not a giant band — so the emphasis stays balanced and
+--- every tile keeps a reasonable, terminal-like shape. Windows are laid out as a
+--- weighted treemap that always fills the screen. Default false.
 obj.heroActive = false
 
---- TermGrid.heroRatio
+--- TermGrid.heroWeight
 --- Variable
---- In hero mode, roughly how many times taller the hero tiles are than the tiles
---- in the band below them. Default 1.7.
-obj.heroRatio = 1.7
+--- How much bigger, in area, a fully-active tile is than an idle one. 2.0 means an
+--- active window gets roughly twice the area of an idle window (with many windows
+--- open that's a gentle nudge; with few it's more pronounced). Default 2.0.
+obj.heroWeight = 2.0
+
+--- TermGrid.recencyWindow
+--- Variable
+--- Seconds over which a just-finished session's emphasis fades from full back to
+--- normal. Until it fades (or another session takes over), its tile stays big — so
+--- a session that stops working shrinks gradually, not the instant it goes idle,
+--- and a hand-off between two sessions looks balanced. Default 120.
+obj.recencyWindow = 120
 
 --- TermGrid.autoArrange
 --- Variable
@@ -194,71 +189,73 @@ local function capacityFor(screen, gap, defW, defH, minW)
   return cap
 end
 
--- Fill an arbitrary rect (x, y, w, h) with equal tiles.
-local function layoutRect(x, y, w, h, wins, gap, defW, defH, anchor)
-  local n = #wins
+-- Squarified treemap: lay `items` (each {win=, weight=}) into `rect` so a tile's
+-- AREA is proportional to its weight, while keeping tiles close to square (never
+-- thin strips) and filling the rect exactly.
+local function squarify(items, rect, gap)
+  local n = #items
   if n == 0 then return end
-  local g = fitGrid(n, w, h, gap, defW, defH)
-  local cols, tileW, tileH = g.cols, g.cellW, g.cellH
-  local originY = y + gap
 
-  for i, win in ipairs(wins) do
-    local idx = i - 1
-    local row = math.floor(idx / cols)
-    local col = idx - row * cols
-    local inRow = math.min(cols, n - row * cols)  -- windows actually in this row
+  local total = 0
+  for _, it in ipairs(items) do total = total + it.weight end
 
-    local rowX
-    if anchor == "center" then
-      local rowW = inRow * tileW + (inRow - 1) * gap
-      rowX = x + (w - rowW) / 2  -- center a partial last row
-    else  -- "topleft"
-      rowX = x + gap
+  local x, y, w, h = rect.x, rect.y, rect.w, rect.h
+  local areaScale = (w * h) / total  -- px^2 per unit weight
+
+  -- Worst (largest) aspect ratio in a strip of area `rowArea` laid along `side`.
+  local function worst(rowArea, maxA, minA, side)
+    local s2, ra2 = side * side, rowArea * rowArea
+    return math.max((s2 * maxA) / ra2, ra2 / (s2 * minA))
+  end
+
+  local i = 1
+  while i <= n do
+    local side = math.min(w, h)          -- lay the strip along the shorter side
+    local rowArea = items[i].weight * areaScale
+    local maxA, minA, count = rowArea, rowArea, 1
+    local j = i + 1
+    while j <= n do
+      local a = items[j].weight * areaScale
+      local nMax, nMin = math.max(maxA, a), math.min(minA, a)
+      if worst(rowArea + a, nMax, nMin, side) <= worst(rowArea, maxA, minA, side) then
+        rowArea, maxA, minA, count = rowArea + a, nMax, nMin, count + 1
+        j = j + 1
+      else
+        break
+      end
     end
 
-    win:setFrame({
-      x = rowX + col * (tileW + gap),
-      y = originY + row * (tileH + gap),
-      w = tileW,
-      h = tileH,
-    }, 0)
+    local thickness = rowArea / side     -- extent into the longer side
+    if w <= h then                       -- horizontal strip across the width
+      local cx = x
+      for k = i, i + count - 1 do
+        local cw = (items[k].weight * areaScale) / thickness
+        items[k].win:setFrame({ x = cx + gap / 2, y = y + gap / 2, w = cw - gap, h = thickness - gap }, 0)
+        cx = cx + cw
+      end
+      y, h = y + thickness, h - thickness
+    else                                 -- vertical strip down the height
+      local cy = y
+      for k = i, i + count - 1 do
+        local ch = (items[k].weight * areaScale) / thickness
+        items[k].win:setFrame({ x = x + gap / 2, y = cy + gap / 2, w = thickness - gap, h = ch - gap }, 0)
+        cy = cy + ch
+      end
+      x, w = x + thickness, w - thickness
+    end
+
+    i = i + count
   end
 end
 
--- Fraction of the height to give the hero (active) band so its tiles are about
--- `ratio`× taller than the tiles in the normal band below. Binary search.
-local function heroFraction(activeN, restN, w, h, gap, defW, defH, ratio)
-  local lo, hi = 0.2, 0.85
-  for _ = 1, 18 do
-    local hf = (lo + hi) / 2
-    local hero = fitGrid(activeN, w, h * hf, gap, defW, defH)
-    local rest = fitGrid(restN, w, h * (1 - hf), gap, defW, defH)
-    if hero.cellH > rest.cellH * ratio then hi = hf else lo = hf end
+-- Lay `wins` out on one `screen` as a weighted treemap (bigger weight → bigger
+-- tile). `weightOf(win)` returns each window's weight.
+local function layoutOnScreen(screen, wins, gap, weightOf)
+  local items = {}
+  for _, w in ipairs(wins) do
+    items[#items + 1] = { win = w, weight = math.max(0.01, weightOf(w)) }
   end
-  return (lo + hi) / 2
-end
-
--- Lay `wins` out on one `screen`. Normally fills the whole screen with equal
--- tiles; in hero mode, actively-working sessions get a taller top band (bigger
--- tiles) and everything else fills a denser band below.
-local function layoutOnScreen(screen, wins, gap, defW, defH, anchor, heroActive, heroRatio)
-  local f = screen:frame()  -- usable area (excludes menu bar + Dock)
-
-  if heroActive then
-    local active, rest = {}, {}
-    for _, w in ipairs(wins) do
-      if windowRank(w) == 0 then active[#active + 1] = w else rest[#rest + 1] = w end
-    end
-    if #active > 0 and #rest > 0 then
-      local hf = heroFraction(#active, #rest, f.w, f.h, gap, defW, defH, heroRatio)
-      local heroH = f.h * hf
-      layoutRect(f.x, f.y, f.w, heroH, active, gap, defW, defH, anchor)
-      layoutRect(f.x, f.y + heroH, f.w, f.h - heroH, rest, gap, defW, defH, anchor)
-      return
-    end
-  end
-
-  layoutRect(f.x, f.y, f.w, f.h, wins, gap, defW, defH, anchor)
+  squarify(items, screen:frame(), gap)
 end
 
 function obj:_isTerminal(bundleID)
@@ -308,6 +305,22 @@ function obj:_tileSize(app)
   return self.tileSize.w, self.tileSize.h
 end
 
+-- A window's layout weight (tile area is proportional to it). A working session
+-- gets `heroWeight`; a just-finished one keeps most of that and fades linearly to
+-- 1 over `recencyWindow` seconds; everything else is 1.
+function obj:_weight(win, now)
+  if not self.heroActive then return 1 end
+  if windowRank(win) == 0 then return self.heroWeight end  -- currently working
+  local la = (self._lastActiveAt or {})[win:id()]
+  if la and self.recencyWindow > 0 then
+    local age = now - la
+    if age < self.recencyWindow then
+      return 1 + (self.heroWeight - 1) * (1 - age / self.recencyWindow)
+    end
+  end
+  return 1
+end
+
 -- Snapshot the current activity: a signature string (each window's id + rank),
 -- the set of active (working) window ids, and the set of all window ids. The
 -- signature changes when a session starts/stops working or a window opens/closes,
@@ -342,6 +355,13 @@ end
 -- the shrink then happens organically, as a side effect of something else growing.
 function obj:_autoTick()
   local sig, active, ids = self:_activityState()
+
+  -- Record recency for currently-working windows every tick, so a window's tile
+  -- can keep some of its size for a while after it goes idle.
+  local now = os.time()
+  self._lastActiveAt = self._lastActiveAt or {}
+  for id in pairs(active) do self._lastActiveAt[id] = now end
+
   if sig == self._appliedSig then return end  -- nothing changed since last applied
 
   local aApplied, iApplied = self._appliedActive or {}, self._appliedIds or {}
@@ -380,7 +400,7 @@ end
 
 --- TermGrid:arrange()
 --- Method
---- Arranges the target terminal's windows into a grid, active sessions first, spilling onto other displays as needed.
+--- Arranges the target terminal's windows into a screen-filling weighted grid (active and recently-active sessions get proportionally larger tiles), spilling onto other displays as needed.
 ---
 --- Parameters:
 ---  * quiet - Optional boolean; when true, arranges without stealing focus or showing an alert (used by auto-arrange)
@@ -405,18 +425,21 @@ function obj:arrange(quiet)
   local wins = hs.fnutils.filter(app:allWindows(), function(w)
     return w:isStandard() and not w:isMinimized()
   end)
-  table.sort(wins, function(a, b)
-    if self.prioritizeActive then
-      local ra, rb = windowRank(a), windowRank(b)
-      if ra ~= rb then return ra < rb end
-    end
-    return a:id() < b:id()
-  end)
+  -- Stable order (by id) so windows keep their positions as activity changes —
+  -- only their sizes shift. Emphasis comes from weight, not from re-ordering.
+  table.sort(wins, function(a, b) return a:id() < b:id() end)
 
   local n = #wins
   if n == 0 then
     if not quiet then alert(self, "TermGrid: no " .. app:name() .. " windows") end
     return self
+  end
+
+  -- Record recency for currently-working windows (feeds tile weights).
+  local now = os.time()
+  self._lastActiveAt = self._lastActiveAt or {}
+  for _, w in ipairs(wins) do
+    if windowRank(w) == 0 then self._lastActiveAt[w:id()] = now end
   end
 
   local defW, defH = self:_tileSize(app)
@@ -446,10 +469,11 @@ function obj:arrange(quiet)
     room = room - 1
   end
 
+  local weightOf = function(w) return self:_weight(w, now) end
   local used = 0
   for i = 1, #screens do
     if buckets[i] and #buckets[i] > 0 then
-      layoutOnScreen(screens[i], buckets[i], gap, defW, defH, self.anchor, self.heroActive, self.heroRatio)
+      layoutOnScreen(screens[i], buckets[i], gap, weightOf)
       used = used + 1
     end
   end

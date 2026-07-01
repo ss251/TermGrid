@@ -7,30 +7,36 @@ All notable changes to TermGrid are documented here. The format loosely follows
 ## [Unreleased]
 
 ### Added
-- **Hero mode** (`heroActive`, default off) — actively-working Claude sessions get
-  a larger tile in a taller band across the top of the screen, and everything else
-  fills a denser grid below. `heroRatio` (default 1.7) tunes how much bigger the
-  hero tiles are. Falls back to an equal grid when nothing is working (or when all
-  sessions are).
-- **Auto-arrange** (`autoArrange`, default off) — watches for session activity
-  changes (a session starts/finishes working, or a window opens/closes) and
-  re-arranges automatically and quietly, without stealing focus. Keys off each
+- **Emphasis for active sessions** (`heroActive`, default off) — actively-working
+  and recently-active sessions get a proportionally larger tile. Windows are laid
+  out as a **weighted squarified treemap**: an active window is ~`heroWeight`
+  (default 2.0) times the *area* of an idle one, kept roughly square (never a wide
+  strip) and always filling the screen. A just-finished session's tile stays big
+  and fades back to normal over `recencyWindow` (default 120s), so a hand-off
+  between two sessions looks balanced rather than one window snapping small. With
+  nothing active, it's a uniform grid.
+- **Auto-arrange** (`autoArrange`, default off) — watches for session activity and
+  re-arranges automatically and quietly (no focus-steal, no alert). Keys off each
   window's activity *rank*, so Claude's Braille spinner animation doesn't thrash
   the layout. `autoInterval` (default 1.5s) sets the check frequency; `toggleAuto`
   is bindable to a hotkey and available from the menu-bar item.
   - **Organic resizing:** growing is real-time (a session starts working, or a
-    window opens/closes, re-arranges at once). A window that goes idle keeps its
-    size — it only shrinks when something else upsizes and needs the room. So a
-    just-finished session's big tile lingers until another session takes over,
-    instead of collapsing the moment it goes idle. (This also keeps the *most
-    recently active* session the big one.)
+    window opens/closes). A window going idle does not re-arrange on its own — it
+    only shrinks when something else upsizes and needs the room, and even then only
+    in proportion to how recently it was active. Nothing snaps small the instant a
+    session finishes.
 
 ### Changed
-- **Tiles now fill the screen edge-to-edge.** Windows stretch to fill their grid
-  cell — equal sizes, no letterboxing or leftover whitespace — instead of keeping
-  the terminal's exact aspect ratio. The grid's shape still follows your
-  calibrated proportions so tiles look like terminals. `tileSize`/calibrate now
-  guide the grid's shape rather than capping the tile size.
+- **Tiles fill the screen with no wasted space.** The layout fills the whole
+  display (via the treemap above), replacing the earlier fixed-size tiles that
+  could run off the bottom of the screen. Spill onto another display happens only
+  when tiles would drop below `minTileWidth` (default 420).
+
+### Removed
+- The intermediate "hero band" layout and its `heroRatio`, plus the `anchor` and
+  `prioritizeActive` options — all superseded by the weighted treemap (emphasis is
+  now expressed as tile area, and windows keep a stable position as activity
+  changes so only their sizes shift).
 
 ## [1.1.0] — 2026-07-02
 
