@@ -4,9 +4,9 @@
 --- terminals that are *actively working* first.
 ---
 --- Works with any macOS terminal (iTerm2, Terminal.app, Ghostty, WezTerm, kitty,
---- Alacritty, Warp, Hyper, Tabby). Windows are sized to fit the screen (up to a
---- preferred size you calibrate), packed top-left, and spilled onto another
---- display only when they'd have to shrink below a readable width.
+--- Alacritty, Warp, Hyper, Tabby). Windows fill the screen in an even grid of
+--- equal-size tiles (no wasted space), packed top-left, and spill onto another
+--- display only when tiles would get too narrow to read.
 ---
 --- Bonus for Claude Code users: sessions that are mid-task are detected from the
 --- terminal's title (Claude stamps a Braille spinner while it works) and placed
@@ -42,17 +42,18 @@ obj.app = nil
 
 --- TermGrid.tileMode
 --- Variable
---- How the preferred (maximum) tile size is chosen. "calibrate" (default) uses a
---- remembered size — set it with the calibrate hotkey, or it falls back to your
---- currently-focused window's size. "fixed" always uses `TermGrid.tileSize`.
---- Windows never exceed this size, but shrink (keeping aspect ratio) to fit the
---- screen when there are many of them.
+--- How the preferred tile shape is chosen — it guides the grid's proportions so
+--- tiles look like terminals, but tiles always stretch to fill the screen.
+--- "calibrate" (default) uses a remembered size — set it with the calibrate
+--- hotkey, or it falls back to your currently-focused window's size. "fixed"
+--- always uses `TermGrid.tileSize`.
 obj.tileMode = "calibrate"
 
 --- TermGrid.tileSize
 --- Variable
---- Preferred (maximum) tile size in points. Fallback when no calibrated size is
---- stored, and the size used when tileMode == "fixed".
+--- Preferred tile shape/size in points, used to guide the grid layout (tiles then
+--- fill the screen). Fallback when no calibrated size is stored, and used when
+--- tileMode == "fixed".
 obj.tileSize = { w = 680, h = 460 }
 
 --- TermGrid.minTileWidth
@@ -64,7 +65,8 @@ obj.minTileWidth = 420
 
 --- TermGrid.anchor
 --- Variable
---- "topleft" (default) packs from the top-left corner; "center" centers the grid.
+--- "topleft" (default) fills from the top-left corner; "center" centers a partial
+--- last row. Full rows fill the screen either way.
 obj.anchor = "topleft"
 
 --- TermGrid.prioritizeActive
@@ -125,10 +127,10 @@ local function windowRank(win)
   return 2
 end
 
--- Pick the grid (cols×rows) and a uniform scale (<= 1) that fits `n` tiles of the
--- preferred aspect (defW:defH) on a WxH area at the largest readable size. Tiles
--- keep the terminal's aspect ratio and never exceed the preferred size. Prefers
--- the biggest tiles, then the tightest fit, then a landscape (wider) grid.
+-- Pick the grid (cols×rows) whose cells fill the WxH screen at a shape closest to
+-- the preferred aspect (defW:defH), so tiles fill every pixel with no letterboxing
+-- while still looking like terminals. Returns the chosen cell size (tiles fill the
+-- cell). `scale` (capped at 1) is used only to compare candidate grids.
 local function fitGrid(n, W, H, gap, defW, defH)
   local best
   for cols = 1, n do
@@ -137,7 +139,7 @@ local function fitGrid(n, W, H, gap, defW, defH)
     local cellH = (H - gap * (rows + 1)) / rows
     if cellW > 0 and cellH > 0 then
       local scale = math.min(cellW / defW, cellH / defH, 1)
-      local cand = { cols = cols, rows = rows, scale = scale }
+      local cand = { cols = cols, rows = rows, cellW = cellW, cellH = cellH, scale = scale }
       if not best
          or cand.scale > best.scale
          or (cand.scale == best.scale and cols * rows < best.cols * best.rows)
@@ -146,45 +148,44 @@ local function fitGrid(n, W, H, gap, defW, defH)
       end
     end
   end
-  return best or { cols = 1, rows = n, scale = 0.1 }
+  return best or { cols = 1, rows = n, cellW = W - 2 * gap, cellH = H - 2 * gap, scale = 0.1 }
 end
 
--- How many windows fit on `screen` while tiles stay at least `minW` wide.
+-- How many windows fit on `screen` while each tile stays at least `minW` wide.
 -- Exceeding this is what triggers a spill onto another display.
 local function capacityFor(screen, gap, defW, defH, minW)
   local f = screen:frame()
   local cap = 1
   for k = 1, 200 do
-    if fitGrid(k, f.w, f.h, gap, defW, defH).scale * defW >= minW then cap = k else break end
+    if fitGrid(k, f.w, f.h, gap, defW, defH).cellW >= minW then cap = k else break end
   end
   return cap
 end
 
--- Lay `wins` out on one `screen`, shrinking tiles to fit so nothing runs off it.
+-- Lay `wins` out on one `screen`, filling the whole screen with equal tiles.
 local function layoutOnScreen(screen, wins, gap, defW, defH, anchor)
   local f = screen:frame()  -- usable area (excludes menu bar + Dock)
   local n = #wins
   local g = fitGrid(n, f.w, f.h, gap, defW, defH)
-  local cols, rows, scale = g.cols, g.rows, g.scale
-  local tileW, tileH = defW * scale, defH * scale
-
-  local originX, originY
-  if anchor == "center" then
-    local blockW = cols * tileW + (cols - 1) * gap
-    local blockH = rows * tileH + (rows - 1) * gap
-    originX = math.max(f.x + gap, f.x + (f.w - blockW) / 2)
-    originY = math.max(f.y + gap, f.y + (f.h - blockH) / 2)
-  else  -- "topleft"
-    originX = f.x + gap
-    originY = f.y + gap
-  end
+  local cols, tileW, tileH = g.cols, g.cellW, g.cellH
+  local originY = f.y + gap
 
   for i, win in ipairs(wins) do
     local idx = i - 1
     local row = math.floor(idx / cols)
     local col = idx - row * cols
+    local inRow = math.min(cols, n - row * cols)  -- windows actually in this row
+
+    local rowX
+    if anchor == "center" then
+      local rowW = inRow * tileW + (inRow - 1) * gap
+      rowX = f.x + (f.w - rowW) / 2  -- center a partial last row
+    else  -- "topleft"
+      rowX = f.x + gap
+    end
+
     win:setFrame({
-      x = originX + col * (tileW + gap),
+      x = rowX + col * (tileW + gap),
       y = originY + row * (tileH + gap),
       w = tileW,
       h = tileH,

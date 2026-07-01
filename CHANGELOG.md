@@ -4,6 +4,15 @@ All notable changes to TermGrid are documented here. The format loosely follows
 [Keep a Changelog](https://keepachangelog.com/), and versions follow
 [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Changed
+- **Tiles now fill the screen edge-to-edge.** Windows stretch to fill their grid
+  cell — equal sizes, no letterboxing or leftover whitespace — instead of keeping
+  the terminal's exact aspect ratio. The grid's shape still follows your
+  calibrated proportions so tiles look like terminals. `tileSize`/calibrate now
+  guide the grid's shape rather than capping the tile size.
+
 ## [1.1.0] — 2026-07-02
 
 ### Changed
