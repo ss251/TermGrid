@@ -18,10 +18,12 @@ All notable changes to TermGrid are documented here. The format loosely follows
   window's activity *rank*, so Claude's Braille spinner animation doesn't thrash
   the layout. `autoInterval` (default 1.5s) sets the check frequency; `toggleAuto`
   is bindable to a hotkey and available from the menu-bar item.
-  - **Asymmetric timing:** promotions (a session starting, a window opening/closing)
-    apply instantly; a window that goes idle shrinks only after `downsizeDelay`
-    (default 5s), so a just-finished session's big tile lingers a moment instead of
-    snapping smaller.
+  - **Organic resizing:** growing is real-time (a session starts working, or a
+    window opens/closes, re-arranges at once). A window that goes idle keeps its
+    size — it only shrinks when something else upsizes and needs the room. So a
+    just-finished session's big tile lingers until another session takes over,
+    instead of collapsing the moment it goes idle. (This also keeps the *most
+    recently active* session the big one.)
 
 ### Changed
 - **Tiles now fill the screen edge-to-edge.** Windows stretch to fill their grid

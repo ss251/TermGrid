@@ -97,22 +97,17 @@ obj.heroRatio = 1.7
 --- finishes working, or a window opens/closes — and re-arranges automatically and
 --- quietly (without stealing focus or showing an alert). The Braille spinner
 --- animation does not count as a change, so continuous work doesn't thrash the
---- layout. Newly-active windows grow immediately; a window that goes idle shrinks
---- only after `downsizeDelay`. Default false.
+--- layout. Growing is real-time — a session starting to work, or a window opening
+--- or closing, re-arranges at once. A window that goes idle keeps its size until
+--- another session takes the spotlight, so a just-finished session's big tile
+--- shrinks organically (when something else needs the space), not the instant it
+--- goes idle. Default false.
 obj.autoArrange = false
 
 --- TermGrid.autoInterval
 --- Variable
 --- How often, in seconds, auto-arrange checks for activity changes. Default 1.5.
 obj.autoInterval = 1.5
-
---- TermGrid.downsizeDelay
---- Variable
---- Grace period, in seconds, before a window that stopped working is shrunk back
---- down. Promotions (a session starting, or a window opening/closing) apply
---- immediately; only shrinking a just-finished window waits, so its big tile
---- lingers a moment after it goes idle. Default 5.
-obj.downsizeDelay = 5
 
 --- TermGrid.spill
 --- Variable
@@ -335,17 +330,16 @@ function obj:_activityState()
   return table.concat(parts, ","), active, ids
 end
 
--- Re-arrange now and remember the applied state (cancelling any pending shrink).
+-- Re-arrange now and remember the applied state.
 function obj:_applyAuto()
-  if self._pendingTimer then self._pendingTimer:stop(); self._pendingTimer = nil end
   self._appliedSig, self._appliedActive, self._appliedIds = self:_activityState()
   self:arrange(true)  -- quiet: no focus steal, no alert
 end
 
--- One poll. Re-arrange immediately for upsizing changes (a session started
--- working, or a window opened/closed — these feel good in real time); wait
--- `downsizeDelay` for pure demotions (a session went idle, so a big tile would
--- shrink) so the finished window lingers a moment before collapsing.
+-- One poll. Re-arrange only on an "upsizing" change — a session started working,
+-- or a window opened/closed. A session merely going idle does NOT re-arrange, so
+-- its (possibly big) tile keeps its size until the next upsize needs the space;
+-- the shrink then happens organically, as a side effect of something else growing.
 function obj:_autoTick()
   local sig, active, ids = self:_activityState()
   if sig == self._appliedSig then return end  -- nothing changed since last applied
@@ -360,14 +354,9 @@ function obj:_autoTick()
     for id in pairs(iApplied) do if not ids[id] then upsize = true break end end     -- a window closed
   end
 
-  if upsize then
-    self:_applyAuto()                       -- immediate
-  elseif not self._pendingTimer then        -- only demotions → shrink after a grace delay
-    self._pendingTimer = hs.timer.doAfter(self.downsizeDelay, function()
-      self._pendingTimer = nil
-      self:_applyAuto()
-    end)
-  end
+  if upsize then self:_applyAuto() end
+  -- else: a session just went idle — leave the layout alone. It re-flows (and this
+  -- window shrinks) the next time something upsizes and needs the room.
 end
 
 function obj:_startAuto()
@@ -379,7 +368,6 @@ end
 
 function obj:_stopAuto()
   if self._autoTimer then self._autoTimer:stop(); self._autoTimer = nil end
-  if self._pendingTimer then self._pendingTimer:stop(); self._pendingTimer = nil end
 end
 
 local function alert(self, msg)
