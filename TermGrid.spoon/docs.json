@@ -872,4 +872,85 @@
         "returns" : [
           " * The TermGrid object"
         ],
-        "name" : "calibra
+        "name" : "calibrate",
+        "parameters" : [
+          " * None",
+          ""
+        ]
+      },
+      {
+        "doc" : "Starts TermGrid, adding the menu-bar button (if TermGrid.menubar is true). The button opens a small menu (Arrange \/ Set tile size); for instant arranging, use the hotkey.\n\nParameters:\n * None\n\nReturns:\n * The TermGrid object",
+        "desc" : "Starts TermGrid, adding the menu-bar button (if TermGrid.menubar is true). The button opens a small menu (Arrange \/ Set tile size); for instant arranging, use the hotkey.",
+        "stripped_doc" : [
+          "Starts TermGrid, adding the menu-bar button (if TermGrid.menubar is true). The button opens a small menu (Arrange \/ Set tile size); for instant arranging, use the hotkey.",
+          ""
+        ],
+        "def" : "TermGrid:start()",
+        "notes" : [
+
+        ],
+        "signature" : "TermGrid:start()",
+        "type" : "Method",
+        "returns" : [
+          " * The TermGrid object"
+        ],
+        "name" : "start",
+        "parameters" : [
+          " * None",
+          ""
+        ]
+      },
+      {
+        "doc" : "Stops TermGrid, removing the menu-bar button.\n\nParameters:\n * None\n\nReturns:\n * The TermGrid object",
+        "desc" : "Stops TermGrid, removing the menu-bar button.",
+        "stripped_doc" : [
+          "Stops TermGrid, removing the menu-bar button.",
+          ""
+        ],
+        "def" : "TermGrid:stop()",
+        "notes" : [
+
+        ],
+        "signature" : "TermGrid:stop()",
+        "type" : "Method",
+        "returns" : [
+          " * The TermGrid object"
+        ],
+        "name" : "stop",
+        "parameters" : [
+          " * None",
+          ""
+        ]
+      },
+      {
+        "doc" : "Turns automatic re-arranging (on session activity changes) on or off.\n\nParameters:\n * None\n\nReturns:\n * The TermGrid object",
+        "desc" : "Turns automatic re-arranging (on session activity changes) on or off.",
+        "stripped_doc" : [
+          "Turns automatic re-arranging (on session activity changes) on or off.",
+          ""
+        ],
+        "def" : "TermGrid:toggleAuto()",
+        "notes" : [
+
+        ],
+        "signature" : "TermGrid:toggleAuto()",
+        "type" : "Method",
+        "returns" : [
+          " * The TermGrid object"
+        ],
+        "name" : "toggleAuto",
+        "parameters" : [
+          " * None",
+          ""
+        ]
+      }
+    ],
+    "Field" : [
+
+    ],
+    "Command" : [
+
+    ],
+    "name" : "TermGrid"
+  }
+]
