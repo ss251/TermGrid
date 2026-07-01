@@ -19,7 +19,7 @@ obj.__index = obj
 
 -- Metadata
 obj.name = "TermGrid"
-obj.version = "1.0.0"
+obj.version = "1.1.0"
 obj.author = "ss251"
 obj.homepage = "https://github.com/ss251/TermGrid"
 obj.license = "MIT - https://opensource.org/licenses/MIT"
