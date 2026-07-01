@@ -77,6 +77,20 @@ obj.anchor = "topleft"
 --- non-Claude sessions.
 obj.prioritizeActive = true
 
+--- TermGrid.heroActive
+--- Variable
+--- When true, actively-working Claude sessions get a larger "hero" tile in a
+--- taller band at the top of the screen, and everything else fills a denser grid
+--- below — instead of all tiles being equal. Falls back to an equal grid when no
+--- session is working (or all are). Default false.
+obj.heroActive = false
+
+--- TermGrid.heroRatio
+--- Variable
+--- In hero mode, roughly how many times taller the hero tiles are than the tiles
+--- in the band below them. Default 1.7.
+obj.heroRatio = 1.7
+
 --- TermGrid.spill
 --- Variable
 --- When true (default), windows spill onto your other displays once they would
@@ -162,13 +176,13 @@ local function capacityFor(screen, gap, defW, defH, minW)
   return cap
 end
 
--- Lay `wins` out on one `screen`, filling the whole screen with equal tiles.
-local function layoutOnScreen(screen, wins, gap, defW, defH, anchor)
-  local f = screen:frame()  -- usable area (excludes menu bar + Dock)
+-- Fill an arbitrary rect (x, y, w, h) with equal tiles.
+local function layoutRect(x, y, w, h, wins, gap, defW, defH, anchor)
   local n = #wins
-  local g = fitGrid(n, f.w, f.h, gap, defW, defH)
+  if n == 0 then return end
+  local g = fitGrid(n, w, h, gap, defW, defH)
   local cols, tileW, tileH = g.cols, g.cellW, g.cellH
-  local originY = f.y + gap
+  local originY = y + gap
 
   for i, win in ipairs(wins) do
     local idx = i - 1
@@ -179,9 +193,9 @@ local function layoutOnScreen(screen, wins, gap, defW, defH, anchor)
     local rowX
     if anchor == "center" then
       local rowW = inRow * tileW + (inRow - 1) * gap
-      rowX = f.x + (f.w - rowW) / 2  -- center a partial last row
+      rowX = x + (w - rowW) / 2  -- center a partial last row
     else  -- "topleft"
-      rowX = f.x + gap
+      rowX = x + gap
     end
 
     win:setFrame({
@@ -191,6 +205,42 @@ local function layoutOnScreen(screen, wins, gap, defW, defH, anchor)
       h = tileH,
     }, 0)
   end
+end
+
+-- Fraction of the height to give the hero (active) band so its tiles are about
+-- `ratio`× taller than the tiles in the normal band below. Binary search.
+local function heroFraction(activeN, restN, w, h, gap, defW, defH, ratio)
+  local lo, hi = 0.2, 0.85
+  for _ = 1, 18 do
+    local hf = (lo + hi) / 2
+    local hero = fitGrid(activeN, w, h * hf, gap, defW, defH)
+    local rest = fitGrid(restN, w, h * (1 - hf), gap, defW, defH)
+    if hero.cellH > rest.cellH * ratio then hi = hf else lo = hf end
+  end
+  return (lo + hi) / 2
+end
+
+-- Lay `wins` out on one `screen`. Normally fills the whole screen with equal
+-- tiles; in hero mode, actively-working sessions get a taller top band (bigger
+-- tiles) and everything else fills a denser band below.
+local function layoutOnScreen(screen, wins, gap, defW, defH, anchor, heroActive, heroRatio)
+  local f = screen:frame()  -- usable area (excludes menu bar + Dock)
+
+  if heroActive then
+    local active, rest = {}, {}
+    for _, w in ipairs(wins) do
+      if windowRank(w) == 0 then active[#active + 1] = w else rest[#rest + 1] = w end
+    end
+    if #active > 0 and #rest > 0 then
+      local hf = heroFraction(#active, #rest, f.w, f.h, gap, defW, defH, heroRatio)
+      local heroH = f.h * hf
+      layoutRect(f.x, f.y, f.w, heroH, active, gap, defW, defH, anchor)
+      layoutRect(f.x, f.y + heroH, f.w, f.h - heroH, rest, gap, defW, defH, anchor)
+      return
+    end
+  end
+
+  layoutRect(f.x, f.y, f.w, f.h, wins, gap, defW, defH, anchor)
 end
 
 function obj:_isTerminal(bundleID)
@@ -317,7 +367,7 @@ function obj:arrange()
   local used = 0
   for i = 1, #screens do
     if buckets[i] and #buckets[i] > 0 then
-      layoutOnScreen(screens[i], buckets[i], gap, defW, defH, self.anchor)
+      layoutOnScreen(screens[i], buckets[i], gap, defW, defH, self.anchor, self.heroActive, self.heroRatio)
       used = used + 1
     end
   end

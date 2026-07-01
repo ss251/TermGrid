@@ -12,7 +12,7 @@
     "Variable" : [
       {
         "doc" : "Pixels between tiles and around the screen edge. Default 8.",
-        "name" : "gap",
+        "desc" : "Pixels between tiles and around the screen edge. Default 8.",
         "parameters" : [
 
         ],
@@ -28,11 +28,11 @@
 
         ],
         "def" : "TermGrid.gap",
-        "desc" : "Pixels between tiles and around the screen edge. Default 8."
+        "name" : "gap"
       },
       {
         "doc" : "Bundle id of the terminal to manage, e.g. \"com.googlecode.iterm2\".\n`nil` (default) auto-detects: the frontmost terminal, or the running\nterminal with the most windows.",
-        "name" : "app",
+        "desc" : "Bundle id of the terminal to manage, e.g. \"com.googlecode.iterm2\".",
         "parameters" : [
 
         ],
@@ -50,11 +50,11 @@
 
         ],
         "def" : "TermGrid.app",
-        "desc" : "Bundle id of the terminal to manage, e.g. \"com.googlecode.iterm2\"."
+        "name" : "app"
       },
       {
         "doc" : "How the preferred tile shape is chosen — it guides the grid's proportions so\ntiles look like terminals, but tiles always stretch to fill the screen.\n\"calibrate\" (default) uses a remembered size — set it with the calibrate\nhotkey, or it falls back to your currently-focused window's size. \"fixed\"\nalways uses `TermGrid.tileSize`.",
-        "name" : "tileMode",
+        "desc" : "How the preferred tile shape is chosen — it guides the grid's proportions so",
         "parameters" : [
 
         ],
@@ -74,11 +74,11 @@
 
         ],
         "def" : "TermGrid.tileMode",
-        "desc" : "How the preferred tile shape is chosen — it guides the grid's proportions so"
+        "name" : "tileMode"
       },
       {
         "doc" : "Preferred tile shape\/size in points, used to guide the grid layout (tiles then\nfill the screen). Fallback when no calibrated size is stored, and used when\ntileMode == \"fixed\".",
-        "name" : "tileSize",
+        "desc" : "Preferred tile shape\/size in points, used to guide the grid layout (tiles then",
         "parameters" : [
 
         ],
@@ -96,11 +96,11 @@
 
         ],
         "def" : "TermGrid.tileSize",
-        "desc" : "Preferred tile shape\/size in points, used to guide the grid layout (tiles then"
+        "name" : "tileSize"
       },
       {
         "doc" : "Readability floor in points. TermGrid keeps every window on the current screen,\nshrinking tiles to fit; it only spills onto another display once tiles would\nhave to get narrower than this. Default 420.",
-        "name" : "minTileWidth",
+        "desc" : "Readability floor in points. TermGrid keeps every window on the current screen,",
         "parameters" : [
 
         ],
@@ -118,11 +118,11 @@
 
         ],
         "def" : "TermGrid.minTileWidth",
-        "desc" : "Readability floor in points. TermGrid keeps every window on the current screen,"
+        "name" : "minTileWidth"
       },
       {
         "doc" : "\"topleft\" (default) fills from the top-left corner; \"center\" centers a partial\nlast row. Full rows fill the screen either way.",
-        "name" : "anchor",
+        "desc" : "\"topleft\" (default) fills from the top-left corner; \"center\" centers a partial",
         "parameters" : [
 
         ],
@@ -139,11 +139,11 @@
 
         ],
         "def" : "TermGrid.anchor",
-        "desc" : "\"topleft\" (default) fills from the top-left corner; \"center\" centers a partial"
+        "name" : "anchor"
       },
       {
         "doc" : "When true (default), actively-working Claude Code sessions are placed first\n(top-left, side by side), then idle Claude sessions, then everything else.\nDetection is by the terminal title's leading glyph; it safely no-ops for\nnon-Claude sessions.",
-        "name" : "prioritizeActive",
+        "desc" : "When true (default), actively-working Claude Code sessions are placed first",
         "parameters" : [
 
         ],
@@ -162,11 +162,55 @@
 
         ],
         "def" : "TermGrid.prioritizeActive",
-        "desc" : "When true (default), actively-working Claude Code sessions are placed first"
+        "name" : "prioritizeActive"
+      },
+      {
+        "doc" : "When true, actively-working Claude sessions get a larger \"hero\" tile in a\ntaller band at the top of the screen, and everything else fills a denser grid\nbelow — instead of all tiles being equal. Falls back to an equal grid when no\nsession is working (or all are). Default false.",
+        "desc" : "When true, actively-working Claude sessions get a larger \"hero\" tile in a",
+        "parameters" : [
+
+        ],
+        "stripped_doc" : [
+          "When true, actively-working Claude sessions get a larger \"hero\" tile in a",
+          "taller band at the top of the screen, and everything else fills a denser grid",
+          "below — instead of all tiles being equal. Falls back to an equal grid when no",
+          "session is working (or all are). Default false."
+        ],
+        "notes" : [
+
+        ],
+        "signature" : "TermGrid.heroActive",
+        "type" : "Variable",
+        "returns" : [
+
+        ],
+        "def" : "TermGrid.heroActive",
+        "name" : "heroActive"
+      },
+      {
+        "doc" : "In hero mode, roughly how many times taller the hero tiles are than the tiles\nin the band below them. Default 1.7.",
+        "desc" : "In hero mode, roughly how many times taller the hero tiles are than the tiles",
+        "parameters" : [
+
+        ],
+        "stripped_doc" : [
+          "In hero mode, roughly how many times taller the hero tiles are than the tiles",
+          "in the band below them. Default 1.7."
+        ],
+        "notes" : [
+
+        ],
+        "signature" : "TermGrid.heroRatio",
+        "type" : "Variable",
+        "returns" : [
+
+        ],
+        "def" : "TermGrid.heroRatio",
+        "name" : "heroRatio"
       },
       {
         "doc" : "When true (default), windows spill onto your other displays once they would\nshrink below `minTileWidth` on one screen. When false, everything stays on the\nactive screen (shrinking to fit).",
-        "name" : "spill",
+        "desc" : "When true (default), windows spill onto your other displays once they would",
         "parameters" : [
 
         ],
@@ -184,11 +228,11 @@
 
         ],
         "def" : "TermGrid.spill",
-        "desc" : "When true (default), windows spill onto your other displays once they would"
+        "name" : "spill"
       },
       {
         "doc" : "Show a small confirmation alert after arranging\/calibrating. Default true.",
-        "name" : "showAlerts",
+        "desc" : "Show a small confirmation alert after arranging\/calibrating. Default true.",
         "parameters" : [
 
         ],
@@ -204,11 +248,11 @@
 
         ],
         "def" : "TermGrid.showAlerts",
-        "desc" : "Show a small confirmation alert after arranging\/calibrating. Default true."
+        "name" : "showAlerts"
       },
       {
         "doc" : "Show a ▦ menu-bar button (left-click arranges). Default true.",
-        "name" : "menubar",
+        "desc" : "Show a ▦ menu-bar button (left-click arranges). Default true.",
         "parameters" : [
 
         ],
@@ -224,11 +268,11 @@
 
         ],
         "def" : "TermGrid.menubar",
-        "desc" : "Show a ▦ menu-bar button (left-click arranges). Default true."
+        "name" : "menubar"
       },
       {
         "doc" : "Known terminal bundle ids used for auto-detection when `app` is nil.",
-        "name" : "terminals",
+        "desc" : "Known terminal bundle ids used for auto-detection when `app` is nil.",
         "parameters" : [
 
         ],
@@ -244,25 +288,27 @@
 
         ],
         "def" : "TermGrid.terminals",
-        "desc" : "Known terminal bundle ids used for auto-detection when `app` is nil."
+        "name" : "terminals"
       }
     ],
     "stripped_doc" : [
 
     ],
     "desc" : "Tidy every terminal window into a clean grid with one hotkey — and put the",
+    "type" : "Module",
     "Deprecated" : [
 
     ],
-    "type" : "Module",
     "Constructor" : [
 
     ],
-    "doc" : "Tidy every terminal window into a clean grid with one hotkey — and put the\nterminals that are *actively working* first.\n\nWorks with any macOS terminal (iTerm2, Terminal.app, Ghostty, WezTerm, kitty,\nAlacritty, Warp, Hyper, Tabby). Windows fill the screen in an even grid of\nequal-size tiles (no wasted space), packed top-left, and spill onto another\ndisplay only when tiles would get too narrow to read.\n\nBonus for Claude Code users: sessions that are mid-task are detected from the\nterminal's title (Claude stamps a Braille spinner while it works) and placed\nfirst, side by side, so the ones doing something land where you look first.\n\nDownload: https:\/\/github.com\/ss251\/TermGrid",
+    "Field" : [
+
+    ],
     "Method" : [
       {
         "doc" : "Arranges the target terminal's windows into a grid, active sessions first, spilling onto other displays as needed.\n\nParameters:\n * None\n\nReturns:\n * The TermGrid object",
-        "name" : "arrange",
+        "desc" : "Arranges the target terminal's windows into a grid, active sessions first, spilling onto other displays as needed.",
         "parameters" : [
           " * None",
           ""
@@ -280,11 +326,11 @@
           " * The TermGrid object"
         ],
         "def" : "TermGrid:arrange()",
-        "desc" : "Arranges the target terminal's windows into a grid, active sessions first, spilling onto other displays as needed."
+        "name" : "arrange"
       },
       {
         "doc" : "Remembers the focused window's current size as the grid tile size for its application.\n\nParameters:\n * None\n\nReturns:\n * The TermGrid object",
-        "name" : "calibrate",
+        "desc" : "Remembers the focused window's current size as the grid tile size for its application.",
         "parameters" : [
           " * None",
           ""
@@ -302,11 +348,11 @@
           " * The TermGrid object"
         ],
         "def" : "TermGrid:calibrate()",
-        "desc" : "Remembers the focused window's current size as the grid tile size for its application."
+        "name" : "calibrate"
       },
       {
         "doc" : "Binds hotkeys for TermGrid.\n\nParameters:\n * mapping - A table containing hotkey modifier\/key details for the following items:\n   * arrange - Arrange the terminal's windows into a grid\n   * calibrate - Remember the focused window's current size as the tile size\n\nReturns:\n * The TermGrid object",
-        "name" : "bindHotkeys",
+        "desc" : "Binds hotkeys for TermGrid.",
         "parameters" : [
           " * mapping - A table containing hotkey modifier\/key details for the following items:",
           "   * arrange - Arrange the terminal's windows into a grid",
@@ -326,11 +372,11 @@
           " * The TermGrid object"
         ],
         "def" : "TermGrid:bindHotkeys(mapping)",
-        "desc" : "Binds hotkeys for TermGrid."
+        "name" : "bindHotkeys"
       },
       {
         "doc" : "Starts TermGrid, adding the menu-bar button (if TermGrid.menubar is true). The button opens a small menu (Arrange \/ Set tile size); for instant arranging, use the hotkey.\n\nParameters:\n * None\n\nReturns:\n * The TermGrid object",
-        "name" : "start",
+        "desc" : "Starts TermGrid, adding the menu-bar button (if TermGrid.menubar is true). The button opens a small menu (Arrange \/ Set tile size); for instant arranging, use the hotkey.",
         "parameters" : [
           " * None",
           ""
@@ -348,11 +394,11 @@
           " * The TermGrid object"
         ],
         "def" : "TermGrid:start()",
-        "desc" : "Starts TermGrid, adding the menu-bar button (if TermGrid.menubar is true). The button opens a small menu (Arrange \/ Set tile size); for instant arranging, use the hotkey."
+        "name" : "start"
       },
       {
         "doc" : "Stops TermGrid, removing the menu-bar button.\n\nParameters:\n * None\n\nReturns:\n * The TermGrid object",
-        "name" : "stop",
+        "desc" : "Stops TermGrid, removing the menu-bar button.",
         "parameters" : [
           " * None",
           ""
@@ -370,16 +416,16 @@
           " * The TermGrid object"
         ],
         "def" : "TermGrid:stop()",
-        "desc" : "Stops TermGrid, removing the menu-bar button."
+        "name" : "stop"
       }
     ],
-    "Field" : [
+    "Command" : [
 
     ],
     "items" : [
       {
         "doc" : "\"topleft\" (default) fills from the top-left corner; \"center\" centers a partial\nlast row. Full rows fill the screen either way.",
-        "name" : "anchor",
+        "desc" : "\"topleft\" (default) fills from the top-left corner; \"center\" centers a partial",
         "parameters" : [
 
         ],
@@ -396,11 +442,11 @@
 
         ],
         "def" : "TermGrid.anchor",
-        "desc" : "\"topleft\" (default) fills from the top-left corner; \"center\" centers a partial"
+        "name" : "anchor"
       },
       {
         "doc" : "Bundle id of the terminal to manage, e.g. \"com.googlecode.iterm2\".\n`nil` (default) auto-detects: the frontmost terminal, or the running\nterminal with the most windows.",
-        "name" : "app",
+        "desc" : "Bundle id of the terminal to manage, e.g. \"com.googlecode.iterm2\".",
         "parameters" : [
 
         ],
@@ -418,11 +464,11 @@
 
         ],
         "def" : "TermGrid.app",
-        "desc" : "Bundle id of the terminal to manage, e.g. \"com.googlecode.iterm2\"."
+        "name" : "app"
       },
       {
         "doc" : "Pixels between tiles and around the screen edge. Default 8.",
-        "name" : "gap",
+        "desc" : "Pixels between tiles and around the screen edge. Default 8.",
         "parameters" : [
 
         ],
@@ -438,11 +484,55 @@
 
         ],
         "def" : "TermGrid.gap",
-        "desc" : "Pixels between tiles and around the screen edge. Default 8."
+        "name" : "gap"
+      },
+      {
+        "doc" : "When true, actively-working Claude sessions get a larger \"hero\" tile in a\ntaller band at the top of the screen, and everything else fills a denser grid\nbelow — instead of all tiles being equal. Falls back to an equal grid when no\nsession is working (or all are). Default false.",
+        "desc" : "When true, actively-working Claude sessions get a larger \"hero\" tile in a",
+        "parameters" : [
+
+        ],
+        "stripped_doc" : [
+          "When true, actively-working Claude sessions get a larger \"hero\" tile in a",
+          "taller band at the top of the screen, and everything else fills a denser grid",
+          "below — instead of all tiles being equal. Falls back to an equal grid when no",
+          "session is working (or all are). Default false."
+        ],
+        "notes" : [
+
+        ],
+        "signature" : "TermGrid.heroActive",
+        "type" : "Variable",
+        "returns" : [
+
+        ],
+        "def" : "TermGrid.heroActive",
+        "name" : "heroActive"
+      },
+      {
+        "doc" : "In hero mode, roughly how many times taller the hero tiles are than the tiles\nin the band below them. Default 1.7.",
+        "desc" : "In hero mode, roughly how many times taller the hero tiles are than the tiles",
+        "parameters" : [
+
+        ],
+        "stripped_doc" : [
+          "In hero mode, roughly how many times taller the hero tiles are than the tiles",
+          "in the band below them. Default 1.7."
+        ],
+        "notes" : [
+
+        ],
+        "signature" : "TermGrid.heroRatio",
+        "type" : "Variable",
+        "returns" : [
+
+        ],
+        "def" : "TermGrid.heroRatio",
+        "name" : "heroRatio"
       },
       {
         "doc" : "Show a ▦ menu-bar button (left-click arranges). Default true.",
-        "name" : "menubar",
+        "desc" : "Show a ▦ menu-bar button (left-click arranges). Default true.",
         "parameters" : [
 
         ],
@@ -458,7 +548,275 @@
 
         ],
         "def" : "TermGrid.menubar",
-        "desc" : "Show a ▦ menu-bar button (left-click arranges). Default true."
+        "name" : "menubar"
       },
       {
-        "doc" : "Readability floor in points. TermGrid keeps every window on the current screen,\nshrinking tiles to fit; it only spills onto another display once tiles would\nhave to get narrower than this. Defa
+        "doc" : "Readability floor in points. TermGrid keeps every window on the current screen,\nshrinking tiles to fit; it only spills onto another display once tiles would\nhave to get narrower than this. Default 420.",
+        "desc" : "Readability floor in points. TermGrid keeps every window on the current screen,",
+        "parameters" : [
+
+        ],
+        "stripped_doc" : [
+          "Readability floor in points. TermGrid keeps every window on the current screen,",
+          "shrinking tiles to fit; it only spills onto another display once tiles would",
+          "have to get narrower than this. Default 420."
+        ],
+        "notes" : [
+
+        ],
+        "signature" : "TermGrid.minTileWidth",
+        "type" : "Variable",
+        "returns" : [
+
+        ],
+        "def" : "TermGrid.minTileWidth",
+        "name" : "minTileWidth"
+      },
+      {
+        "doc" : "When true (default), actively-working Claude Code sessions are placed first\n(top-left, side by side), then idle Claude sessions, then everything else.\nDetection is by the terminal title's leading glyph; it safely no-ops for\nnon-Claude sessions.",
+        "desc" : "When true (default), actively-working Claude Code sessions are placed first",
+        "parameters" : [
+
+        ],
+        "stripped_doc" : [
+          "When true (default), actively-working Claude Code sessions are placed first",
+          "(top-left, side by side), then idle Claude sessions, then everything else.",
+          "Detection is by the terminal title's leading glyph; it safely no-ops for",
+          "non-Claude sessions."
+        ],
+        "notes" : [
+
+        ],
+        "signature" : "TermGrid.prioritizeActive",
+        "type" : "Variable",
+        "returns" : [
+
+        ],
+        "def" : "TermGrid.prioritizeActive",
+        "name" : "prioritizeActive"
+      },
+      {
+        "doc" : "Show a small confirmation alert after arranging\/calibrating. Default true.",
+        "desc" : "Show a small confirmation alert after arranging\/calibrating. Default true.",
+        "parameters" : [
+
+        ],
+        "stripped_doc" : [
+          "Show a small confirmation alert after arranging\/calibrating. Default true."
+        ],
+        "notes" : [
+
+        ],
+        "signature" : "TermGrid.showAlerts",
+        "type" : "Variable",
+        "returns" : [
+
+        ],
+        "def" : "TermGrid.showAlerts",
+        "name" : "showAlerts"
+      },
+      {
+        "doc" : "When true (default), windows spill onto your other displays once they would\nshrink below `minTileWidth` on one screen. When false, everything stays on the\nactive screen (shrinking to fit).",
+        "desc" : "When true (default), windows spill onto your other displays once they would",
+        "parameters" : [
+
+        ],
+        "stripped_doc" : [
+          "When true (default), windows spill onto your other displays once they would",
+          "shrink below `minTileWidth` on one screen. When false, everything stays on the",
+          "active screen (shrinking to fit)."
+        ],
+        "notes" : [
+
+        ],
+        "signature" : "TermGrid.spill",
+        "type" : "Variable",
+        "returns" : [
+
+        ],
+        "def" : "TermGrid.spill",
+        "name" : "spill"
+      },
+      {
+        "doc" : "Known terminal bundle ids used for auto-detection when `app` is nil.",
+        "desc" : "Known terminal bundle ids used for auto-detection when `app` is nil.",
+        "parameters" : [
+
+        ],
+        "stripped_doc" : [
+          "Known terminal bundle ids used for auto-detection when `app` is nil."
+        ],
+        "notes" : [
+
+        ],
+        "signature" : "TermGrid.terminals",
+        "type" : "Variable",
+        "returns" : [
+
+        ],
+        "def" : "TermGrid.terminals",
+        "name" : "terminals"
+      },
+      {
+        "doc" : "How the preferred tile shape is chosen — it guides the grid's proportions so\ntiles look like terminals, but tiles always stretch to fill the screen.\n\"calibrate\" (default) uses a remembered size — set it with the calibrate\nhotkey, or it falls back to your currently-focused window's size. \"fixed\"\nalways uses `TermGrid.tileSize`.",
+        "desc" : "How the preferred tile shape is chosen — it guides the grid's proportions so",
+        "parameters" : [
+
+        ],
+        "stripped_doc" : [
+          "How the preferred tile shape is chosen — it guides the grid's proportions so",
+          "tiles look like terminals, but tiles always stretch to fill the screen.",
+          "\"calibrate\" (default) uses a remembered size — set it with the calibrate",
+          "hotkey, or it falls back to your currently-focused window's size. \"fixed\"",
+          "always uses `TermGrid.tileSize`."
+        ],
+        "notes" : [
+
+        ],
+        "signature" : "TermGrid.tileMode",
+        "type" : "Variable",
+        "returns" : [
+
+        ],
+        "def" : "TermGrid.tileMode",
+        "name" : "tileMode"
+      },
+      {
+        "doc" : "Preferred tile shape\/size in points, used to guide the grid layout (tiles then\nfill the screen). Fallback when no calibrated size is stored, and used when\ntileMode == \"fixed\".",
+        "desc" : "Preferred tile shape\/size in points, used to guide the grid layout (tiles then",
+        "parameters" : [
+
+        ],
+        "stripped_doc" : [
+          "Preferred tile shape\/size in points, used to guide the grid layout (tiles then",
+          "fill the screen). Fallback when no calibrated size is stored, and used when",
+          "tileMode == \"fixed\"."
+        ],
+        "notes" : [
+
+        ],
+        "signature" : "TermGrid.tileSize",
+        "type" : "Variable",
+        "returns" : [
+
+        ],
+        "def" : "TermGrid.tileSize",
+        "name" : "tileSize"
+      },
+      {
+        "doc" : "Arranges the target terminal's windows into a grid, active sessions first, spilling onto other displays as needed.\n\nParameters:\n * None\n\nReturns:\n * The TermGrid object",
+        "desc" : "Arranges the target terminal's windows into a grid, active sessions first, spilling onto other displays as needed.",
+        "parameters" : [
+          " * None",
+          ""
+        ],
+        "stripped_doc" : [
+          "Arranges the target terminal's windows into a grid, active sessions first, spilling onto other displays as needed.",
+          ""
+        ],
+        "notes" : [
+
+        ],
+        "signature" : "TermGrid:arrange()",
+        "type" : "Method",
+        "returns" : [
+          " * The TermGrid object"
+        ],
+        "def" : "TermGrid:arrange()",
+        "name" : "arrange"
+      },
+      {
+        "doc" : "Binds hotkeys for TermGrid.\n\nParameters:\n * mapping - A table containing hotkey modifier\/key details for the following items:\n   * arrange - Arrange the terminal's windows into a grid\n   * calibrate - Remember the focused window's current size as the tile size\n\nReturns:\n * The TermGrid object",
+        "desc" : "Binds hotkeys for TermGrid.",
+        "parameters" : [
+          " * mapping - A table containing hotkey modifier\/key details for the following items:",
+          "   * arrange - Arrange the terminal's windows into a grid",
+          "   * calibrate - Remember the focused window's current size as the tile size",
+          ""
+        ],
+        "stripped_doc" : [
+          "Binds hotkeys for TermGrid.",
+          ""
+        ],
+        "notes" : [
+
+        ],
+        "signature" : "TermGrid:bindHotkeys(mapping)",
+        "type" : "Method",
+        "returns" : [
+          " * The TermGrid object"
+        ],
+        "def" : "TermGrid:bindHotkeys(mapping)",
+        "name" : "bindHotkeys"
+      },
+      {
+        "doc" : "Remembers the focused window's current size as the grid tile size for its application.\n\nParameters:\n * None\n\nReturns:\n * The TermGrid object",
+        "desc" : "Remembers the focused window's current size as the grid tile size for its application.",
+        "parameters" : [
+          " * None",
+          ""
+        ],
+        "stripped_doc" : [
+          "Remembers the focused window's current size as the grid tile size for its application.",
+          ""
+        ],
+        "notes" : [
+
+        ],
+        "signature" : "TermGrid:calibrate()",
+        "type" : "Method",
+        "returns" : [
+          " * The TermGrid object"
+        ],
+        "def" : "TermGrid:calibrate()",
+        "name" : "calibrate"
+      },
+      {
+        "doc" : "Starts TermGrid, adding the menu-bar button (if TermGrid.menubar is true). The button opens a small menu (Arrange \/ Set tile size); for instant arranging, use the hotkey.\n\nParameters:\n * None\n\nReturns:\n * The TermGrid object",
+        "desc" : "Starts TermGrid, adding the menu-bar button (if TermGrid.menubar is true). The button opens a small menu (Arrange \/ Set tile size); for instant arranging, use the hotkey.",
+        "parameters" : [
+          " * None",
+          ""
+        ],
+        "stripped_doc" : [
+          "Starts TermGrid, adding the menu-bar button (if TermGrid.menubar is true). The button opens a small menu (Arrange \/ Set tile size); for instant arranging, use the hotkey.",
+          ""
+        ],
+        "notes" : [
+
+        ],
+        "signature" : "TermGrid:start()",
+        "type" : "Method",
+        "returns" : [
+          " * The TermGrid object"
+        ],
+        "def" : "TermGrid:start()",
+        "name" : "start"
+      },
+      {
+        "doc" : "Stops TermGrid, removing the menu-bar button.\n\nParameters:\n * None\n\nReturns:\n * The TermGrid object",
+        "desc" : "Stops TermGrid, removing the menu-bar button.",
+        "parameters" : [
+          " * None",
+          ""
+        ],
+        "stripped_doc" : [
+          "Stops TermGrid, removing the menu-bar button.",
+          ""
+        ],
+        "notes" : [
+
+        ],
+        "signature" : "TermGrid:stop()",
+        "type" : "Method",
+        "returns" : [
+          " * The TermGrid object"
+        ],
+        "def" : "TermGrid:stop()",
+        "name" : "stop"
+      }
+    ],
+    "doc" : "Tidy every terminal window into a clean grid with one hotkey — and put the\nterminals that are *actively working* first.\n\nWorks with any macOS terminal (iTerm2, Terminal.app, Ghostty, WezTerm, kitty,\nAlacritty, Warp, Hyper, Tabby). Windows fill the screen in an even grid of\nequal-size tiles (no wasted space), packed top-left, and spill onto another\ndisplay only when tiles would get too narrow to read.\n\nBonus for Claude Code users: sessions that are mid-task are detected from the\nterminal's title (Claude stamps a Braille spinner while it works) and placed\nfirst, side by side, so the ones doing something land where you look first.\n\nDownload: https:\/\/github.com\/ss251\/TermGrid",
+    "name" : "TermGrid"
+  }
+]

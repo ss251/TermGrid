@@ -6,6 +6,13 @@ All notable changes to TermGrid are documented here. The format loosely follows
 
 ## [Unreleased]
 
+### Added
+- **Hero mode** (`heroActive`, default off) — actively-working Claude sessions get
+  a larger tile in a taller band across the top of the screen, and everything else
+  fills a denser grid below. `heroRatio` (default 1.7) tunes how much bigger the
+  hero tiles are. Falls back to an equal grid when nothing is working (or when all
+  sessions are).
+
 ### Changed
 - **Tiles now fill the screen edge-to-edge.** Windows stretch to fill their grid
   cell — equal sizes, no letterboxing or leftover whitespace — instead of keeping
