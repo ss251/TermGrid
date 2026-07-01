@@ -10,11 +10,12 @@ If you run a pile of terminal sessions (especially AI coding agents like [Claude
 
 ## Features
 
-- **One hotkey, every window** — grids all of your terminal's windows at a consistent size.
+- **One hotkey, every window** — grids all of your terminal's windows, sized to fit the screen.
+- **Fits, never overflows** — with lots of windows open, tiles shrink (keeping the terminal's aspect ratio) so every row stays fully on-screen and readable.
 - **Works with any macOS terminal** — iTerm2, Terminal.app, Ghostty, WezTerm, kitty, Alacritty, Warp, Hyper, Tabby. Auto-detects whichever you're using.
 - **Active sessions first** — actively-working [Claude Code](https://www.anthropic.com/claude-code) sessions are detected from the terminal title (Claude stamps a Braille spinner while it works) and placed first, side by side. Safely no-ops if you don't use Claude.
-- **Multi-monitor spill** — fills your current screen, then spills onto your other displays only when it needs to.
-- **Calibrate once** — set the tile size from a window you like; TermGrid remembers it per app.
+- **Spills only when needed** — keeps everything on your current screen and only spills onto another display once tiles would shrink below a readable width.
+- **Calibrate once** — set the preferred (maximum) size from a window you like; TermGrid remembers it per app.
 - **Tiny & hackable** — one Lua file, no daemons, no dependencies beyond Hammerspoon.
 
 ## Requirements
@@ -72,7 +73,8 @@ Override any of these after `hs.loadSpoon("TermGrid")`:
 spoon.TermGrid.gap = 8                 -- px between tiles and screen edge
 spoon.TermGrid.app = nil               -- pin a terminal by bundle id, or nil to auto-detect
 spoon.TermGrid.tileMode = "calibrate"  -- "calibrate" (remembered size) or "fixed"
-spoon.TermGrid.tileSize = { w = 680, h = 460 }  -- fallback / used when tileMode == "fixed"
+spoon.TermGrid.tileSize = { w = 680, h = 460 }  -- preferred/max size; fallback and used when tileMode == "fixed"
+spoon.TermGrid.minTileWidth = 420      -- only spill to another display when tiles would be narrower than this
 spoon.TermGrid.anchor = "topleft"      -- "topleft" or "center"
 spoon.TermGrid.prioritizeActive = true -- active Claude sessions first
 spoon.TermGrid.spill = true            -- spill onto other displays when one screen fills

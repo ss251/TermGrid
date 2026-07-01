@@ -4,9 +4,9 @@
 --- terminals that are *actively working* first.
 ---
 --- Works with any macOS terminal (iTerm2, Terminal.app, Ghostty, WezTerm, kitty,
---- Alacritty, Warp, Hyper, Tabby). Each window is set to a consistent size
---- (calibrate it once from a window you like), packed top-left, and spilled onto
---- your other displays only when one screen fills up.
+--- Alacritty, Warp, Hyper, Tabby). Windows are sized to fit the screen (up to a
+--- preferred size you calibrate), packed top-left, and spilled onto another
+--- display only when they'd have to shrink below a readable width.
 ---
 --- Bonus for Claude Code users: sessions that are mid-task are detected from the
 --- terminal's title (Claude stamps a Braille spinner while it works) and placed
@@ -42,15 +42,25 @@ obj.app = nil
 
 --- TermGrid.tileMode
 --- Variable
---- "calibrate" (default) sizes every window to a remembered size — set it with
---- the calibrate hotkey, or it falls back to your currently-focused window's
---- size. "fixed" always uses `TermGrid.tileSize`.
+--- How the preferred (maximum) tile size is chosen. "calibrate" (default) uses a
+--- remembered size — set it with the calibrate hotkey, or it falls back to your
+--- currently-focused window's size. "fixed" always uses `TermGrid.tileSize`.
+--- Windows never exceed this size, but shrink (keeping aspect ratio) to fit the
+--- screen when there are many of them.
 obj.tileMode = "calibrate"
 
 --- TermGrid.tileSize
 --- Variable
---- Fallback tile size in points, and the size used when tileMode == "fixed".
+--- Preferred (maximum) tile size in points. Fallback when no calibrated size is
+--- stored, and the size used when tileMode == "fixed".
 obj.tileSize = { w = 680, h = 460 }
+
+--- TermGrid.minTileWidth
+--- Variable
+--- Readability floor in points. TermGrid keeps every window on the current screen,
+--- shrinking tiles to fit; it only spills onto another display once tiles would
+--- have to get narrower than this. Default 420.
+obj.minTileWidth = 420
 
 --- TermGrid.anchor
 --- Variable
@@ -67,8 +77,9 @@ obj.prioritizeActive = true
 
 --- TermGrid.spill
 --- Variable
---- When true (default), windows that don't fit on one screen spill onto your
---- other displays. When false, everything stays on the active screen.
+--- When true (default), windows spill onto your other displays once they would
+--- shrink below `minTileWidth` on one screen. When false, everything stays on the
+--- active screen (shrinking to fit).
 obj.spill = true
 
 --- TermGrid.showAlerts
@@ -114,21 +125,48 @@ local function windowRank(win)
   return 2
 end
 
--- How many tiles of size tileW×tileH fit on `screen`.
-local function capacityFor(screen, tileW, tileH, gap)
-  local f = screen:frame()
-  local colsFit = math.max(1, math.floor((f.w - gap) / (tileW + gap)))
-  local rowsFit = math.max(1, math.floor((f.h - gap) / (tileH + gap)))
-  return colsFit * rowsFit
+-- Pick the grid (cols×rows) and a uniform scale (<= 1) that fits `n` tiles of the
+-- preferred aspect (defW:defH) on a WxH area at the largest readable size. Tiles
+-- keep the terminal's aspect ratio and never exceed the preferred size. Prefers
+-- the biggest tiles, then the tightest fit, then a landscape (wider) grid.
+local function fitGrid(n, W, H, gap, defW, defH)
+  local best
+  for cols = 1, n do
+    local rows = math.ceil(n / cols)
+    local cellW = (W - gap * (cols + 1)) / cols
+    local cellH = (H - gap * (rows + 1)) / rows
+    if cellW > 0 and cellH > 0 then
+      local scale = math.min(cellW / defW, cellH / defH, 1)
+      local cand = { cols = cols, rows = rows, scale = scale }
+      if not best
+         or cand.scale > best.scale
+         or (cand.scale == best.scale and cols * rows < best.cols * best.rows)
+         or (cand.scale == best.scale and cols * rows == best.cols * best.rows and cols > best.cols) then
+        best = cand
+      end
+    end
+  end
+  return best or { cols = 1, rows = n, scale = 0.1 }
 end
 
--- Lay `wins` out as a fixed-tile grid on one `screen`.
-local function layoutOnScreen(screen, wins, tileW, tileH, gap, anchor)
+-- How many windows fit on `screen` while tiles stay at least `minW` wide.
+-- Exceeding this is what triggers a spill onto another display.
+local function capacityFor(screen, gap, defW, defH, minW)
+  local f = screen:frame()
+  local cap = 1
+  for k = 1, 200 do
+    if fitGrid(k, f.w, f.h, gap, defW, defH).scale * defW >= minW then cap = k else break end
+  end
+  return cap
+end
+
+-- Lay `wins` out on one `screen`, shrinking tiles to fit so nothing runs off it.
+local function layoutOnScreen(screen, wins, gap, defW, defH, anchor)
   local f = screen:frame()  -- usable area (excludes menu bar + Dock)
   local n = #wins
-  local colsFit = math.max(1, math.floor((f.w - gap) / (tileW + gap)))
-  local cols = math.min(n, colsFit)
-  local rows = math.ceil(n / cols)
+  local g = fitGrid(n, f.w, f.h, gap, defW, defH)
+  local cols, rows, scale = g.cols, g.rows, g.scale
+  local tileW, tileH = defW * scale, defH * scale
 
   local originX, originY
   if anchor == "center" then
@@ -248,8 +286,8 @@ function obj:arrange()
     return self
   end
 
-  local tileW, tileH = self:_tileSize(app)
-  local gap = self.gap
+  local defW, defH = self:_tileSize(app)
+  local gap, minW = self.gap, self.minTileWidth
 
   -- Screen order: the one under the mouse first, then the rest left-to-right.
   local primary = hs.mouse.getCurrentScreen() or hs.screen.mainScreen()
@@ -264,7 +302,7 @@ function obj:arrange()
   -- Because `wins` is sorted active-first, the busy sessions fill the primary
   -- screen's top row before any spill happens.
   local caps = {}
-  for i, s in ipairs(screens) do caps[i] = capacityFor(s, tileW, tileH, gap) end
+  for i, s in ipairs(screens) do caps[i] = capacityFor(s, gap, defW, defH, minW) end
 
   local buckets = {}
   local si, room = 1, caps[1]
@@ -278,7 +316,7 @@ function obj:arrange()
   local used = 0
   for i = 1, #screens do
     if buckets[i] and #buckets[i] > 0 then
-      layoutOnScreen(screens[i], buckets[i], tileW, tileH, gap, self.anchor)
+      layoutOnScreen(screens[i], buckets[i], gap, defW, defH, self.anchor)
       used = used + 1
     end
   end
