@@ -97,13 +97,22 @@ obj.heroRatio = 1.7
 --- finishes working, or a window opens/closes — and re-arranges automatically and
 --- quietly (without stealing focus or showing an alert). The Braille spinner
 --- animation does not count as a change, so continuous work doesn't thrash the
---- layout. Default false.
+--- layout. Newly-active windows grow immediately; a window that goes idle shrinks
+--- only after `downsizeDelay`. Default false.
 obj.autoArrange = false
 
 --- TermGrid.autoInterval
 --- Variable
 --- How often, in seconds, auto-arrange checks for activity changes. Default 1.5.
 obj.autoInterval = 1.5
+
+--- TermGrid.downsizeDelay
+--- Variable
+--- Grace period, in seconds, before a window that stopped working is shrunk back
+--- down. Promotions (a session starting, or a window opening/closing) apply
+--- immediately; only shrinking a just-finished window waits, so its big tile
+--- lingers a moment after it goes idle. Default 5.
+obj.downsizeDelay = 5
 
 --- TermGrid.spill
 --- Variable
@@ -304,40 +313,73 @@ function obj:_tileSize(app)
   return self.tileSize.w, self.tileSize.h
 end
 
--- A signature of the current activity state: each window's id + rank. It changes
--- when a session starts/stops working or a window opens/closes, but NOT while a
--- session merely keeps working (the Braille spinner animates the title, yet the
--- rank stays 0), so continuous work doesn't thrash the layout.
-function obj:_activitySignature()
+-- Snapshot the current activity: a signature string (each window's id + rank),
+-- the set of active (working) window ids, and the set of all window ids. The
+-- signature changes when a session starts/stops working or a window opens/closes,
+-- but NOT while a session merely keeps working (the Braille spinner animates the
+-- title, yet the rank stays 0), so continuous work doesn't thrash the layout.
+function obj:_activityState()
   local app = self:_targetApp()
-  if not app then return "none" end
-  local parts = {}
-  for _, w in ipairs(app:allWindows()) do
-    if w:isStandard() and not w:isMinimized() then
-      parts[#parts + 1] = w:id() .. ":" .. windowRank(w)
+  local parts, active, ids = {}, {}, {}
+  if app then
+    for _, w in ipairs(app:allWindows()) do
+      if w:isStandard() and not w:isMinimized() then
+        local id, r = w:id(), windowRank(w)
+        ids[id] = true
+        if r == 0 then active[id] = true end
+        parts[#parts + 1] = id .. ":" .. r
+      end
     end
   end
   table.sort(parts)
-  return table.concat(parts, ",")
+  return table.concat(parts, ","), active, ids
 end
 
+-- Re-arrange now and remember the applied state (cancelling any pending shrink).
+function obj:_applyAuto()
+  if self._pendingTimer then self._pendingTimer:stop(); self._pendingTimer = nil end
+  self._appliedSig, self._appliedActive, self._appliedIds = self:_activityState()
+  self:arrange(true)  -- quiet: no focus steal, no alert
+end
+
+-- One poll. Re-arrange immediately for upsizing changes (a session started
+-- working, or a window opened/closed — these feel good in real time); wait
+-- `downsizeDelay` for pure demotions (a session went idle, so a big tile would
+-- shrink) so the finished window lingers a moment before collapsing.
 function obj:_autoTick()
-  local sig = self:_activitySignature()
-  if sig ~= self._lastSig then
-    self._lastSig = sig
-    self:arrange(true)  -- quiet: no focus steal, no alert
+  local sig, active, ids = self:_activityState()
+  if sig == self._appliedSig then return end  -- nothing changed since last applied
+
+  local aApplied, iApplied = self._appliedActive or {}, self._appliedIds or {}
+  local upsize = false
+  for id in pairs(active) do if not aApplied[id] then upsize = true break end end   -- a session started working
+  if not upsize then
+    for id in pairs(ids) do if not iApplied[id] then upsize = true break end end     -- a window opened
+  end
+  if not upsize then
+    for id in pairs(iApplied) do if not ids[id] then upsize = true break end end     -- a window closed
+  end
+
+  if upsize then
+    self:_applyAuto()                       -- immediate
+  elseif not self._pendingTimer then        -- only demotions → shrink after a grace delay
+    self._pendingTimer = hs.timer.doAfter(self.downsizeDelay, function()
+      self._pendingTimer = nil
+      self:_applyAuto()
+    end)
   end
 end
 
 function obj:_startAuto()
   if self._autoTimer then return end
-  self._lastSig = nil
+  self._appliedSig, self._appliedActive, self._appliedIds = nil, {}, {}
   self._autoTimer = hs.timer.new(self.autoInterval, function() self:_autoTick() end)
   self._autoTimer:start()
 end
 
 function obj:_stopAuto()
   if self._autoTimer then self._autoTimer:stop(); self._autoTimer = nil end
+  if self._pendingTimer then self._pendingTimer:stop(); self._pendingTimer = nil end
 end
 
 local function alert(self, msg)
