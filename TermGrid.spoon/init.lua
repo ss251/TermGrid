@@ -91,6 +91,20 @@ obj.heroActive = false
 --- in the band below them. Default 1.7.
 obj.heroRatio = 1.7
 
+--- TermGrid.autoArrange
+--- Variable
+--- When true, TermGrid watches for session activity changes — a session starts or
+--- finishes working, or a window opens/closes — and re-arranges automatically and
+--- quietly (without stealing focus or showing an alert). The Braille spinner
+--- animation does not count as a change, so continuous work doesn't thrash the
+--- layout. Default false.
+obj.autoArrange = false
+
+--- TermGrid.autoInterval
+--- Variable
+--- How often, in seconds, auto-arrange checks for activity changes. Default 1.5.
+obj.autoInterval = 1.5
+
 --- TermGrid.spill
 --- Variable
 --- When true (default), windows spill onto your other displays once they would
@@ -290,6 +304,42 @@ function obj:_tileSize(app)
   return self.tileSize.w, self.tileSize.h
 end
 
+-- A signature of the current activity state: each window's id + rank. It changes
+-- when a session starts/stops working or a window opens/closes, but NOT while a
+-- session merely keeps working (the Braille spinner animates the title, yet the
+-- rank stays 0), so continuous work doesn't thrash the layout.
+function obj:_activitySignature()
+  local app = self:_targetApp()
+  if not app then return "none" end
+  local parts = {}
+  for _, w in ipairs(app:allWindows()) do
+    if w:isStandard() and not w:isMinimized() then
+      parts[#parts + 1] = w:id() .. ":" .. windowRank(w)
+    end
+  end
+  table.sort(parts)
+  return table.concat(parts, ",")
+end
+
+function obj:_autoTick()
+  local sig = self:_activitySignature()
+  if sig ~= self._lastSig then
+    self._lastSig = sig
+    self:arrange(true)  -- quiet: no focus steal, no alert
+  end
+end
+
+function obj:_startAuto()
+  if self._autoTimer then return end
+  self._lastSig = nil
+  self._autoTimer = hs.timer.new(self.autoInterval, function() self:_autoTick() end)
+  self._autoTimer:start()
+end
+
+function obj:_stopAuto()
+  if self._autoTimer then self._autoTimer:stop(); self._autoTimer = nil end
+end
+
 local function alert(self, msg)
   if self.showAlerts then hs.alert.show(msg) end
 end
@@ -303,20 +353,22 @@ end
 --- Arranges the target terminal's windows into a grid, active sessions first, spilling onto other displays as needed.
 ---
 --- Parameters:
----  * None
+---  * quiet - Optional boolean; when true, arranges without stealing focus or showing an alert (used by auto-arrange)
 ---
 --- Returns:
 ---  * The TermGrid object
-function obj:arrange()
+function obj:arrange(quiet)
   if not hs.accessibilityState() then
-    hs.alert.show("Grant Hammerspoon Accessibility access:\nSystem Settings → Privacy & Security → Accessibility")
-    hs.accessibilityState(true)  -- prompts the user
+    if not quiet then
+      hs.alert.show("Grant Hammerspoon Accessibility access:\nSystem Settings → Privacy & Security → Accessibility")
+      hs.accessibilityState(true)  -- prompts the user
+    end
     return self
   end
 
   local app = self:_targetApp()
   if not app then
-    alert(self, "TermGrid: no terminal app found")
+    if not quiet then alert(self, "TermGrid: no terminal app found") end
     return self
   end
 
@@ -333,7 +385,7 @@ function obj:arrange()
 
   local n = #wins
   if n == 0 then
-    alert(self, "TermGrid: no " .. app:name() .. " windows")
+    if not quiet then alert(self, "TermGrid: no " .. app:name() .. " windows") end
     return self
   end
 
@@ -372,9 +424,11 @@ function obj:arrange()
     end
   end
 
-  app:activate()  -- bring the terminal forward after arranging
-  alert(self, string.format("TermGrid: %d %s window%s · %d screen%s",
-    n, app:name(), n > 1 and "s" or "", used, used > 1 and "s" or ""))
+  if not quiet then
+    app:activate()  -- bring the terminal forward after arranging
+    alert(self, string.format("TermGrid: %d %s window%s · %d screen%s",
+      n, app:name(), n > 1 and "s" or "", used, used > 1 and "s" or ""))
+  end
   return self
 end
 
@@ -400,6 +454,22 @@ function obj:calibrate()
   return self
 end
 
+--- TermGrid:toggleAuto()
+--- Method
+--- Turns automatic re-arranging (on session activity changes) on or off.
+---
+--- Parameters:
+---  * None
+---
+--- Returns:
+---  * The TermGrid object
+function obj:toggleAuto()
+  self.autoArrange = not self.autoArrange
+  if self.autoArrange then self:_startAuto() else self:_stopAuto() end
+  hs.alert.show("TermGrid auto-arrange: " .. (self.autoArrange and "ON" or "OFF"))
+  return self
+end
+
 --- TermGrid:bindHotkeys(mapping)
 --- Method
 --- Binds hotkeys for TermGrid.
@@ -408,13 +478,15 @@ end
 ---  * mapping - A table containing hotkey modifier/key details for the following items:
 ---    * arrange - Arrange the terminal's windows into a grid
 ---    * calibrate - Remember the focused window's current size as the tile size
+---    * toggleAuto - Turn automatic re-arranging on or off
 ---
 --- Returns:
 ---  * The TermGrid object
 function obj:bindHotkeys(mapping)
   local spec = {
-    arrange   = function() self:arrange() end,
-    calibrate = function() self:calibrate() end,
+    arrange    = function() self:arrange() end,
+    calibrate  = function() self:calibrate() end,
+    toggleAuto = function() self:toggleAuto() end,
   }
   hs.spoons.bindHotkeysToSpec(spec, mapping)
   return self
@@ -435,14 +507,18 @@ function obj:start()
     if self._menu then
       self._menu:setTitle("▦")
       self._menu:setTooltip("TermGrid — arrange terminal windows")
-      self._menu:setMenu({
-        { title = "Arrange terminal windows", fn = function() self:arrange() end },
-        { title = "Set tile size from focused window", fn = function() self:calibrate() end },
-        { title = "-" },
-        { title = "TermGrid " .. self.version, disabled = true },
-      })
+      self._menu:setMenu(function()
+        return {
+          { title = "Arrange terminal windows", fn = function() self:arrange() end },
+          { title = "Set tile size from focused window", fn = function() self:calibrate() end },
+          { title = (self.autoArrange and "✓ " or "") .. "Auto-arrange on activity", fn = function() self:toggleAuto() end },
+          { title = "-" },
+          { title = "TermGrid " .. self.version, disabled = true },
+        }
+      end)
     end
   end
+  if self.autoArrange then self:_startAuto() end
   return self
 end
 
@@ -456,6 +532,7 @@ end
 --- Returns:
 ---  * The TermGrid object
 function obj:stop()
+  self:_stopAuto()
   if self._menu then self._menu:delete(); self._menu = nil end
   return self
 end

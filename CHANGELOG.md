@@ -12,6 +12,12 @@ All notable changes to TermGrid are documented here. The format loosely follows
   fills a denser grid below. `heroRatio` (default 1.7) tunes how much bigger the
   hero tiles are. Falls back to an equal grid when nothing is working (or when all
   sessions are).
+- **Auto-arrange** (`autoArrange`, default off) — watches for session activity
+  changes (a session starts/finishes working, or a window opens/closes) and
+  re-arranges automatically and quietly, without stealing focus. Keys off each
+  window's activity *rank*, so Claude's Braille spinner animation doesn't thrash
+  the layout. `autoInterval` (default 1.5s) sets the check frequency; `toggleAuto`
+  is bindable to a hotkey and available from the menu-bar item.
 
 ### Changed
 - **Tiles now fill the screen edge-to-edge.** Windows stretch to fill their grid
